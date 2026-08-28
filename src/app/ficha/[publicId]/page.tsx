@@ -83,7 +83,10 @@ export default function FichaEditorPage({
       let shared = false;
       if (nav.canShare?.({ files: [file] }) && nav.share) {
         try {
-          await nav.share({ files: [file], title: ficha.fileName });
+          // Sin "title": con él, iOS agrega un "Link" junto al PDF en el
+          // share sheet (aparece como "1 Link and 1 Document" en vez de
+          // nada más el archivo limpio).
+          await nav.share({ files: [file] });
           shared = true;
         } catch (shareErr) {
           // El usuario cerrando el share sheet cuenta como "ya se resolvió":
