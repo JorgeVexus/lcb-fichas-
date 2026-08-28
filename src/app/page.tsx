@@ -1,69 +1,70 @@
-import Image from "next/image";
-import styles from "./page.module.css";
+"use client";
 
-export default function Home() {
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { LcbLogo } from "@/components/LcbLogo";
+import { extractPublicId } from "@/lib/extract-public-id";
+
+export default function HomePage() {
+  const router = useRouter();
+  const [value, setValue] = useState("");
+  const [error, setError] = useState<string | null>(null);
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    const publicId = extractPublicId(value);
+    if (!publicId) {
+      setError('No se reconoce un ID de EasyBroker (ej. "EB-AB1234") en lo que pegaste.');
+      return;
+    }
+    router.push(`/ficha/${publicId}`);
+  }
+
   return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className={styles.intro}>
-          <h1>
-            To get started, edit the{" "}
-            <code className={styles.code}>page.tsx</code> file.
-          </h1>
-          <p>
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div
+      style={{
+        minHeight: "100vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 24,
+      }}
+    >
+      <div className="app-card" style={{ width: "100%", maxWidth: 460, padding: 32 }}>
+        <div style={{ marginBottom: 28 }}>
+          <LcbLogo size={40} />
         </div>
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+        <h1 style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.01em", marginBottom: 6 }}>
+          Generador de fichas técnicas
+        </h1>
+        <p style={{ fontSize: 14, color: "var(--lcb-gray-text)", marginBottom: 24 }}>
+          Pega la URL o el ID de EasyBroker de la propiedad (ej. EB-AB1234).
+        </p>
+        <form onSubmit={handleSubmit}>
+          <label className="app-label" htmlFor="property">
+            Propiedad
+          </label>
+          <input
+            id="property"
+            type="text"
+            autoFocus
+            className="app-input"
+            placeholder="https://easybroker.com/... o EB-AB1234"
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+          />
+          <button
+            type="submit"
+            className="app-btn app-btn-primary"
+            style={{ width: "100%", marginTop: 16, padding: "12px 20px" }}
           >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className={styles.secondary}
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+            Generar ficha
+          </button>
+          {error && (
+            <p style={{ color: "#c0392b", fontSize: 13, marginTop: 12, textAlign: "center" }}>{error}</p>
+          )}
+        </form>
+      </div>
     </div>
   );
 }
