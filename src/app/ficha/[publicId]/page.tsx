@@ -80,24 +80,36 @@ export default function FichaEditorPage({
         share?: (data: ShareData) => Promise<void>;
       };
 
+      let shared = false;
       if (nav.canShare?.({ files: [file] }) && nav.share) {
-        await nav.share({ files: [file], title: ficha.fileName });
-        return;
+        try {
+          await nav.share({ files: [file], title: ficha.fileName });
+          shared = true;
+        } catch (shareErr) {
+          // El usuario cerrando el share sheet cuenta como "ya se resolvió":
+          // no hay que además forzar una descarga por encima. Cualquier
+          // otro motivo (el más común: el navegador considera "enfriado"
+          // el gesto del clic mientras esperábamos el fetch del PDF, y
+          // rechaza share() por eso) cae a la descarga normal de abajo en
+          // vez de dejar al asesor con las manos vacías.
+          if (shareErr instanceof Error && shareErr.name === "AbortError") {
+            shared = true;
+          }
+        }
       }
 
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `${ficha.fileName}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-    } catch (err) {
-      // El usuario cerrando el share sheet también dispara AbortError -- no es un error real.
-      if (err instanceof Error && err.name !== "AbortError") {
-        alert(err.message || "Error al descargar el PDF");
+      if (!shared) {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `${ficha.fileName}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
       }
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Error al descargar el PDF");
     } finally {
       setDownloading(false);
     }
