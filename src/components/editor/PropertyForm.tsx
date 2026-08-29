@@ -156,10 +156,16 @@ export function PropertyForm({
   async function handleExtraFilesUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const files = e.target.files;
     if (!files || files.length === 0) return;
+    // Ojo: hay que materializar la lista ANTES de limpiar el input -- en
+    // algunos navegadores, poner value="" también vacía el FileList que
+    // "files" apunta (es una referencia viva), así que si esto se hiciera
+    // después, Array.from(files) ya vendría vacío y no se subía nada, sin
+    // ningún error visible.
+    const fileArray = Array.from(files);
     e.target.value = "";
 
     const newFiles: FichaExtraFile[] = await Promise.all(
-      Array.from(files).map(async (file) => ({
+      fileArray.map(async (file) => ({
         id: `extra-${Date.now()}-${Math.random().toString(36).slice(2)}`,
         name: file.name,
         dataUrl: await readAsDataUrl(file),
