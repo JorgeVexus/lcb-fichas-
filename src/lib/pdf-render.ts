@@ -37,39 +37,27 @@ function buildHtml(ficha: FichaData): string {
 }
 
 /**
- * Anexa planos/archivos adicionales (imagen o PDF) como páginas extra al
- * final, del mismo tamaño de página que la ficha. Un archivo que no se
- * pueda incrustar (formato raro, PDF corrupto) se salta en vez de tumbar
- * la descarga completa -- el resto de la ficha ya es válida.
+ * Anexa PDF adjuntos (planos que ya vienen en PDF) tal cual como páginas al
+ * final. Las imágenes ya NO pasan por aquí: viven en `allImages` y se
+ * imprimen como páginas normales dentro del mismo render de Playwright (así
+ * se ven en la vista previa también). Un PDF corrupto se salta en vez de
+ * tumbar la descarga completa -- el resto de la ficha ya es válida.
  */
 async function appendExtraFiles(basePdf: Buffer, extraFiles: FichaData["extraFiles"]): Promise<Buffer> {
   if (!extraFiles || extraFiles.length === 0) return basePdf;
 
   const { PDFDocument } = await import("pdf-lib");
   const mainDoc = await PDFDocument.load(basePdf);
-  const { width, height } = mainDoc.getPages()[0].getSize();
 
   for (const file of extraFiles) {
     try {
       const base64 = file.dataUrl.split(",")[1] ?? "";
       const bytes = Buffer.from(base64, "base64");
-
-      if (file.mimeType === "application/pdf") {
-        const extraDoc = await PDFDocument.load(bytes);
-        const pages = await mainDoc.copyPages(extraDoc, extraDoc.getPageIndices());
-        pages.forEach((p) => mainDoc.addPage(p));
-      } else {
-        const image = file.mimeType.includes("png")
-          ? await mainDoc.embedPng(bytes)
-          : await mainDoc.embedJpg(bytes);
-        const page = mainDoc.addPage([width, height]);
-        const scale = Math.min(width / image.width, height / image.height);
-        const w = image.width * scale;
-        const h = image.height * scale;
-        page.drawImage(image, { x: (width - w) / 2, y: (height - h) / 2, width: w, height: h });
-      }
+      const extraDoc = await PDFDocument.load(bytes);
+      const pages = await mainDoc.copyPages(extraDoc, extraDoc.getPageIndices());
+      pages.forEach((p) => mainDoc.addPage(p));
     } catch {
-      // Formato no soportado o archivo corrupto: se omite, no se aborta la ficha entera.
+      // PDF corrupto o formato inesperado: se omite, no se aborta la ficha entera.
     }
   }
 

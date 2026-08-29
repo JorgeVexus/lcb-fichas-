@@ -153,6 +153,11 @@ export function PropertyForm({
     });
   }
 
+  // Las imágenes (JPG/PNG) se suman a allImages -- aparecen en el
+  // PhotoPicker de arriba como una foto más, ya con rol "Página extra" por
+  // default, y el asesor puede moverlas a portada/secundaria/galería o
+  // borrarlas desde ahí. Los PDF no se pueden convertir en "foto", así que
+  // esos siguen su propio camino (extraFiles) y solo se ven al exportar.
   async function handleExtraFilesUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const files = e.target.files;
     if (!files || files.length === 0) return;
@@ -164,16 +169,25 @@ export function PropertyForm({
     const fileArray = Array.from(files);
     e.target.value = "";
 
-    const newFiles: FichaExtraFile[] = await Promise.all(
-      fileArray.map(async (file) => ({
-        id: `extra-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-        name: file.name,
-        dataUrl: await readAsDataUrl(file),
-        mimeType: file.type,
-      }))
-    );
+    const newImages: { id: string; url: string }[] = [];
+    const newPdfFiles: FichaExtraFile[] = [];
 
-    onChange({ ...ficha, extraFiles: [...ficha.extraFiles, ...newFiles] });
+    for (const file of fileArray) {
+      const dataUrl = await readAsDataUrl(file);
+      const id = `upload-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      if (file.type === "application/pdf") {
+        newPdfFiles.push({ id, name: file.name, dataUrl, mimeType: file.type });
+      } else {
+        newImages.push({ id, url: dataUrl });
+      }
+    }
+
+    onChange({
+      ...ficha,
+      allImages: [...ficha.allImages, ...newImages],
+      extraPageImageIds: [...ficha.extraPageImageIds, ...newImages.map((img) => img.id)],
+      extraFiles: [...ficha.extraFiles, ...newPdfFiles],
+    });
   }
 
   function removeExtraFile(id: string) {
@@ -232,7 +246,9 @@ export function PropertyForm({
       <div style={sectionStyle}>
         <div style={sectionTitleStyle}>Archivos adicionales</div>
         <p style={{ fontSize: 11, color: "var(--lcb-gray-text)", marginTop: -4, marginBottom: 10 }}>
-          Planos u otros archivos (JPG, PNG o PDF) que se agregan como páginas extra al final del PDF.
+          Planos u otros archivos. Las imágenes (JPG/PNG) se agregan arriba en "Fotos" como página extra
+          -- se ven en la vista previa y se pueden mover a portada/secundaria/galería. Los PDF se anexan
+          tal cual al final y solo se ven al descargar, no en la vista previa.
         </p>
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
           <label className="app-btn app-btn-secondary" style={{ cursor: "pointer" }}>
@@ -246,11 +262,11 @@ export function PropertyForm({
             />
           </label>
           <span style={{ fontSize: 12, color: "var(--lcb-gray-text)" }}>
-            {ficha.extraFiles.length === 0 ? "Ningún archivo seleccionado" : `${ficha.extraFiles.length} archivo(s)`}
+            {ficha.extraFiles.length === 0 ? "Ningún PDF adjunto" : `${ficha.extraFiles.length} PDF adjunto(s)`}
           </span>
         </div>
         {ficha.extraFiles.length > 0 && (
-          <ul style={{ listStyle: "none", fontSize: 12 }}>
+          <ul style={{ listStyle: "none", fontSize: 12, marginBottom: 10 }}>
             {ficha.extraFiles.map((f) => (
               <li key={f.id} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
                 <span style={{ flex: 1, color: "var(--lcb-gray-text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
@@ -267,6 +283,13 @@ export function PropertyForm({
               </li>
             ))}
           </ul>
+        )}
+        {ficha.extraPageImageIds.length > 0 && (
+          <Field
+            label="Título de las páginas extra"
+            value={ficha.extraPagesTitle}
+            onChange={(v) => set("extraPagesTitle", v)}
+          />
         )}
       </div>
 

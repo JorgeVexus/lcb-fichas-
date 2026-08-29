@@ -40,13 +40,16 @@ export interface FichaData {
   title: string;
   agent: FichaAgent;
 
-  /** Todas las fotos disponibles de la propiedad, para elegir en el PhotoPicker. */
+  /** Fotos de la propiedad (EasyBroker) + imágenes subidas a mano -- todas elegibles en el PhotoPicker. */
   allImages: FichaImage[];
   heroImageId: string | null;
   /** 1 o 2 fotos según variant. */
   secondaryImageIds: string[];
   /** Hasta 6 fotos para la galería de la página 2. */
   galleryImageIds: string[];
+  /** Imágenes subidas (planos, etc.) que van en sus propias páginas extra, en cuadrícula de galería. */
+  extraPageImageIds: string[];
+  extraPagesTitle: string;
 
   priceLabel: string;
   priceOperation: "en Renta" | "en Venta" | string;
@@ -69,6 +72,6 @@ export interface FichaData {
   /** Nombre del archivo al descargar (sin ".pdf"), editable por si el auto-generado no queda bien. */
   fileName: string;
 
-  /** Planos u otros archivos (imagen o PDF) que se anexan como páginas extra al final del PDF. */
+  /** Planos u otros PDF que se anexan tal cual como páginas al final (no se ven en la vista previa). */
   extraFiles: FichaExtraFile[];
 }

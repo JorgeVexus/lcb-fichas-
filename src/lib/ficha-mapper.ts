@@ -78,6 +78,7 @@ export function easyBrokerToFichaData(detail: EasyBrokerPropertyDetail): FichaDa
     heroImageId: images[0]?.id ?? null,
     secondaryImageIds: images.slice(1, galleryStart).map((img) => img.id),
     galleryImageIds: images.slice(galleryStart, galleryStart + 6).map((img) => img.id),
+    extraPageImageIds: [],
 
     priceLabel,
     priceOperation,
@@ -98,6 +99,7 @@ export function easyBrokerToFichaData(detail: EasyBrokerPropertyDetail): FichaDa
     garantiaOption: matchGarantiaOption(garantiaText) ?? DEFAULT_GARANTIA,
 
     galleryTitle: "Fotografías",
+    extraPagesTitle: "Planos",
     ctaText: DEFAULT_CTA,
     fileName: sanitizeFileName(buildDefaultFileName(detail.title, areaLabel)),
     extraFiles: [],
