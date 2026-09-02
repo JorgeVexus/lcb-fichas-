@@ -24,6 +24,18 @@ const SECTION_TITLES = [
 
 export type SectionTitle = (typeof SECTION_TITLES)[number];
 
+const HEADER_BY_NORMALIZED = new Map<string, SectionTitle>(
+  SECTION_TITLES.map((title) => [normalizeHeader(title), title])
+);
+
+function normalizeHeader(line: string): string {
+  return line
+    .trim()
+    .toUpperCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, ""); // quita acentos: "CARGA Y DESCARGA" calza aunque EasyBroker varíe mayúsculas/acentos
+}
+
 /** "· Garantía: ..." se extrae aparte (dropdown de opciones fijas), nunca como bullet libre. */
 export const GARANTIA_LABEL_RE = /garant[ií]a/i;
 
@@ -31,120 +43,50 @@ function looksLikeMeasurement(value: string): boolean {
   return /\d\s*(m2|m²|m\b|mts?\b|tons?\/m2)/i.test(value) && !/\$/.test(value);
 }
 
-/** Which section each known EasyBroker description label belongs to, matching the Figma layout. */
-function sectionFor(label: string, value: string): SectionTitle {
+/**
+ * Red de seguridad SOLO para cuando no hay un header de sección detectado
+ * arriba de un bullet (no debería pasar con el formato real de EasyBroker,
+ * pero por si acaso el texto viene incompleto o con otro orden).
+ */
+function guessSectionFor(label: string, value: string): SectionTitle {
   const l = label.toLowerCase();
 
-  if (
-    /^(precio|renta|venta) de/.test(l) ||
-    l.includes("cuota de mantenimiento") ||
-    l.includes("cuota del nnn") ||
-    l.includes("mensualidad total")
-  ) {
+  if (/^(precio|renta|venta) de/.test(l) || l.includes("mantenimiento") || l.includes("mensualidad")) {
     return "PRECIO";
   }
-
-  if (
-    l.includes("área total construida") ||
-    l.includes("area total construida") ||
-    l.includes("área de bodega") ||
-    l.includes("area de bodega") ||
-    l.includes("área de mezzanine") ||
-    l.includes("area de mezzanine") ||
-    l.includes("área de mezanine") ||
-    l.includes("area de mezanine") ||
-    l.includes("área de oficinas") ||
-    l.includes("area de oficinas") ||
-    l.includes("área de patio") ||
-    l.includes("area de patio") ||
-    l.includes("área de terreno") ||
-    l.includes("area de terreno") ||
-    l === "fondo" ||
-    l === "frente" ||
-    l === "largo" ||
-    l === "ancho" ||
-    l.includes("profundidad") ||
-    l.includes("claro entre columnas") ||
-    l.includes("separación entre columnas") ||
-    l.includes("separacion entre columnas") ||
-    l.includes("número de columnas") ||
-    l.includes("numero de columnas") ||
-    l.includes("altura máxima") ||
-    l.includes("altura maxima") ||
-    l.includes("altura libre") ||
-    l.includes("altura mínima") ||
-    l.includes("altura minima") ||
-    l.includes("resistencia de piso") ||
-    l.includes("resistencia del piso")
-  ) {
-    return "MEDIDAS";
-  }
-
-  if (
-    l.includes("andenes") ||
-    l.includes("rampas vehiculares") ||
-    l.includes("rampa o acceso") ||
-    l.includes("estacionamientos") ||
-    l.includes("cajones de estacionamiento") ||
-    l.includes("patio de maniobras")
-  ) {
-    return "CARGA Y DESCARGA";
-  }
-
-  if (
-    l.includes("tipo de techo") ||
-    l.includes("tipo de muro") ||
-    l.includes("luz natural") ||
-    l.includes("knock-out") ||
-    l.includes("knock out")
-  ) {
-    return "MATERIALES";
-  }
-
-  if (
-    l.includes("dentro de parque") ||
-    l.includes("vigilancia") ||
-    l.includes("sistema contra incendios") ||
-    l.includes("luminarias") ||
-    l === "baños" ||
-    l.includes("baños") ||
-    l.includes("subestación") ||
-    l.includes("subestacion")
-  ) {
-    return "SERVICIOS";
-  }
-
-  if (
-    l.includes("disponible a partir de") ||
-    l.includes("antigüedad") ||
-    l.includes("antiguedad") ||
-    l.includes("año de construcción") ||
-    l.includes("ano de construccion")
-  ) {
-    return "FECHAS";
-  }
-
-  // Última red de seguridad antes de caer en REQUISITOS: cualquier bullet
-  // con unidades de medida (m, m2, m², tons/m2) que no haya calzado con
-  // ninguna etiqueta conocida de arriba es casi siempre una medida, no un
-  // requisito -- evita que "Largo", "Knock-Outs", etc. (variantes que
-  // EasyBroker no siempre nombra igual) se cuelen en la sección equivocada.
   if (looksLikeMeasurement(value)) {
     return "MEDIDAS";
   }
-
-  // Plazo mínimo de renta, fiador y cualquier bullet realmente no
-  // reconocido caen aquí para no perder información del texto original.
+  if (l.includes("andenes") || l.includes("rampa") || l.includes("estacionamiento") || l.includes("maniobras")) {
+    return "CARGA Y DESCARGA";
+  }
+  if (l.includes("techo") || l.includes("muro") || l.includes("luz natural")) {
+    return "MATERIALES";
+  }
+  if (l.includes("vigilancia") || l.includes("incendio") || l.includes("luminaria") || l.includes("baño")) {
+    return "SERVICIOS";
+  }
+  if (l.includes("disponible") || l.includes("antigüedad") || l.includes("antiguedad")) {
+    return "FECHAS";
+  }
   return "REQUISITOS";
 }
 
 /**
- * Convierte el campo `description` de EasyBroker (bullets "· Label: Value" en
- * texto libre) en las 7 secciones editables que muestra el diseño de Figma,
- * más el valor de "Garantía" por separado (se muestra como dropdown de
- * opciones fijas, no como bullet libre).
- * Best-effort: el formato varía entre listados, así que el asesor debe
- * revisar y puede editar/agregar/quitar cualquier bullet en el editor.
+ * Convierte el campo `description` de EasyBroker en las 7 secciones
+ * editables del diseño, más el valor de "Garantía" por separado (dropdown
+ * de opciones fijas, no bullet libre).
+ *
+ * EasyBroker ya manda estas secciones como encabezados de texto plano
+ * dentro de la descripción -- "PRECIO", "MEDIDAS", "CARGA Y DESCARGA", etc.,
+ * cada uno seguido de sus bullets "· Etiqueta: Valor" -- así que la sección
+ * de cada bullet se toma del encabezado real que le precede en el texto,
+ * en vez de adivinar por el nombre de la etiqueta. Eso es lo que evita que
+ * "Drop Lots", "Largo", etc. (variantes que EasyBroker no siempre repite
+ * igual) se cuelen en la sección equivocada: no importa qué tan rara sea
+ * la etiqueta, si viene debajo de "CARGA Y DESCARGA" en el texto, se queda
+ * en CARGA Y DESCARGA. La heurística por palabras clave solo se usa como
+ * último recurso si un bullet aparece sin ningún encabezado detectado antes.
  */
 export function parseDescriptionSections(description: string): {
   sections: DescriptionSection[];
@@ -153,23 +95,39 @@ export function parseDescriptionSections(description: string): {
   const sections = new Map<SectionTitle, DescriptionBullet[]>(
     SECTION_TITLES.map((title) => [title, []])
   );
-
-  const bullets = description.split("·").slice(1);
   let garantiaText: string | null = null;
+  let currentSection: SectionTitle | null = null;
 
-  for (const raw of bullets) {
-    const idx = raw.indexOf(":");
-    if (idx === -1) continue;
-    const label = raw.slice(0, idx).trim();
-    const value = raw.slice(idx + 1).split("\n")[0].trim();
-    if (!label || !value) continue;
+  for (const rawLine of description.split("\n")) {
+    const line = rawLine.trim();
+    if (!line) continue;
 
-    if (GARANTIA_LABEL_RE.test(label)) {
+    const asHeader = HEADER_BY_NORMALIZED.get(normalizeHeader(line));
+    if (asHeader) {
+      currentSection = asHeader;
+      continue;
+    }
+
+    if (!line.startsWith("·")) continue; // texto suelto (ej. el CTA al final) -- no es un bullet
+    const bulletText = line.slice(1).trim();
+    if (!bulletText) continue;
+
+    const idx = bulletText.indexOf(":");
+    // No todos los bullets de REQUISITOS traen "Etiqueta: Valor" -- a veces
+    // es una sola frase ("Garantía corporativa o 12 meses en garantía").
+    // Sin ":" se guarda como valor con etiqueta vacía, para no perder el
+    // contenido en vez de descartarlo en silencio.
+    const label = idx === -1 ? "" : bulletText.slice(0, idx).trim();
+    const value = idx === -1 ? bulletText : bulletText.slice(idx + 1).trim();
+    if (!value) continue;
+
+    if (GARANTIA_LABEL_RE.test(label) || GARANTIA_LABEL_RE.test(value)) {
       garantiaText = value;
       continue;
     }
 
-    sections.get(sectionFor(label, value))!.push({ label, value });
+    const section = currentSection ?? guessSectionFor(label, value);
+    sections.get(section)!.push({ label, value });
   }
 
   return {

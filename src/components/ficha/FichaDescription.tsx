@@ -9,7 +9,7 @@ function Section({ section, extraBullet }: { section: DescriptionSection; extraB
       <div className="ficha-desc-section-title">{section.title}</div>
       {section.bullets.map((b, i) => (
         <div className="ficha-desc-bullet" key={i}>
-          · {b.label}: {b.value}
+          · {b.label ? `${b.label}: ${b.value}` : b.value}
         </div>
       ))}
       {extraBullet && <div className="ficha-desc-bullet">· Garantía: {extraBullet}</div>}
