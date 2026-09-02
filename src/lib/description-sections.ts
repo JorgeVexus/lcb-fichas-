@@ -36,8 +36,15 @@ function normalizeHeader(line: string): string {
     .replace(/[̀-ͯ]/g, ""); // quita acentos: "CARGA Y DESCARGA" calza aunque EasyBroker varíe mayúsculas/acentos
 }
 
-/** "· Garantía: ..." se extrae aparte (dropdown de opciones fijas), nunca como bullet libre. */
-export const GARANTIA_LABEL_RE = /garant[ií]a/i;
+/**
+ * Se extrae aparte (dropdown de opciones fijas), nunca como bullet libre --
+ * no solo "· Garantía: ...", también variantes como "· Fiador con Bien
+ * Inmueble libre de gravamen en CDMX..." que dicen lo mismo sin usar la
+ * palabra "garantía" (si no, se duplicaba: una vez como bullet suelto de
+ * REQUISITOS y otra vez como el bullet fijo "Garantía: ..." del dropdown).
+ */
+export const GARANTIA_LABEL_RE =
+  /garant[ií]a|fiador|obligado solidario|bien inmueble libre de gravamen/i;
 
 function looksLikeMeasurement(value: string): boolean {
   return /\d\s*(m2|m²|m\b|mts?\b|tons?\/m2)/i.test(value) && !/\$/.test(value);
