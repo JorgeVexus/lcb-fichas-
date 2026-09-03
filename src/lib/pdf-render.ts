@@ -3,11 +3,27 @@ import path from "node:path";
 import ReactDOMServer from "react-dom/server.node";
 import type { Browser } from "playwright-core";
 import { FichaDocument } from "@/components/ficha/FichaDocument";
+import { optimizeImage } from "@/lib/image-optimize";
 import type { FichaData } from "@/types/ficha";
 
 /** Alto/ancho del lienzo de la ficha (px), igual al frame de Figma — ver Ficha.css. */
 const PAGE_WIDTH = "1049px";
 const PAGE_HEIGHT = "1546px";
+
+/**
+ * Achica y recomprime todas las fotos (propiedad + subidas + mapa
+ * personalizado) antes de imprimir -- son las que inflan el PDF a ~10MB,
+ * demasiado para mandar por WhatsApp o correo sin que el asesor tenga que
+ * comprimirlo aparte. Se descargan/optimizan en paralelo.
+ */
+async function optimizeFichaImages(ficha: FichaData): Promise<FichaData> {
+  const [allImages, customMapImage] = await Promise.all([
+    Promise.all(ficha.allImages.map(async (img) => ({ ...img, url: await optimizeImage(img.url) }))),
+    ficha.customMapImage ? optimizeImage(ficha.customMapImage) : Promise.resolve(null),
+  ]);
+
+  return { ...ficha, allImages, customMapImage };
+}
 
 function logoDataUri(): string {
   const bytes = fs.readFileSync(path.join(process.cwd(), "public/logo-lcb.png"));
@@ -81,7 +97,8 @@ async function launchBrowser(): Promise<Browser> {
 }
 
 export async function renderFichaPdf(ficha: FichaData): Promise<Buffer> {
-  const html = buildHtml(ficha);
+  const optimizedFicha = await optimizeFichaImages(ficha);
+  const html = buildHtml(optimizedFicha);
   const browser = await launchBrowser();
 
   try {

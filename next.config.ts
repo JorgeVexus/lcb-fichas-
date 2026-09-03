@@ -9,6 +9,10 @@ const nextConfig: NextConfig = {
     "/api/pdf": [
       "./node_modules/playwright-core/**/*",
       "./node_modules/@sparticuz/chromium/**/*",
+      // sharp ships prebuilt native binaries (.node files) the same way --
+      // sin esto correríamos el mismo riesgo de que Vercel no las incluya.
+      "./node_modules/sharp/**/*",
+      "./node_modules/@img/**/*",
     ],
   },
 };
