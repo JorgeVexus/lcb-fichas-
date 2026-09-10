@@ -66,6 +66,13 @@ export interface FichaData {
   descriptionSections: DescriptionSection[];
   /** Se muestra como bullet fijo "Garantía: ..." en REQUISITOS; dropdown de opciones, no texto libre. */
   garantiaOption: string;
+  /**
+   * Avisos tipo "*Fotos ilustrativas de bodega similar*." o "*Bodega NO
+   * divisible*." -- EasyBroker los manda como líneas sueltas entre
+   * asteriscos, sin encabezado de sección. Se muestran en el PDF sin
+   * título; una línea vacía simplemente no se imprime.
+   */
+  illustrativeNotes: string[];
 
   galleryTitle: string;
   ctaText: string;

@@ -194,6 +194,19 @@ export function PropertyForm({
     onChange({ ...ficha, extraFiles: ficha.extraFiles.filter((f) => f.id !== id) });
   }
 
+  function updateIllustrativeNote(index: number, text: string) {
+    const illustrativeNotes = ficha.illustrativeNotes.map((n, i) => (i === index ? text : n));
+    onChange({ ...ficha, illustrativeNotes });
+  }
+
+  function addIllustrativeNote() {
+    onChange({ ...ficha, illustrativeNotes: [...ficha.illustrativeNotes, ""] });
+  }
+
+  function removeIllustrativeNote(index: number) {
+    onChange({ ...ficha, illustrativeNotes: ficha.illustrativeNotes.filter((_, i) => i !== index) });
+  }
+
   return (
     <div>
       <div style={sectionStyle}>
@@ -291,6 +304,41 @@ export function PropertyForm({
             onChange={(v) => set("extraPagesTitle", v)}
           />
         )}
+      </div>
+
+      <div style={sectionStyle}>
+        <div style={sectionTitleStyle}>Fotos ilustrativas</div>
+        <p style={{ fontSize: 11, color: "var(--lcb-gray-text)", marginTop: -4, marginBottom: 10 }}>
+          Avisos tipo "Fotos ilustrativas de bodega similar" o "Bodega NO divisible" -- se imprimen sin
+          título, cada uno entre asteriscos. Una línea vacía simplemente no aparece en el PDF.
+        </p>
+        {ficha.illustrativeNotes.map((note, i) => (
+          <div key={i} style={{ display: "flex", gap: 4, marginBottom: 6 }}>
+            <input
+              className="app-input"
+              style={{ flex: 1 }}
+              placeholder="Ej. Fotos ilustrativas de bodega similar"
+              value={note}
+              onChange={(e) => updateIllustrativeNote(i, e.target.value)}
+            />
+            <button
+              type="button"
+              className="app-btn app-btn-secondary"
+              style={{ padding: "0 12px" }}
+              onClick={() => removeIllustrativeNote(i)}
+            >
+              ×
+            </button>
+          </div>
+        ))}
+        <button
+          type="button"
+          className="app-btn app-btn-secondary"
+          style={{ marginTop: 4, fontSize: 12, padding: "6px 12px" }}
+          onClick={addIllustrativeNote}
+        >
+          + Agregar línea
+        </button>
       </div>
 
       <div style={sectionStyle}>

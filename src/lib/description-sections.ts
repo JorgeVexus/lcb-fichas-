@@ -79,6 +79,34 @@ function guessSectionFor(label: string, value: string): SectionTitle {
   return "REQUISITOS";
 }
 
+// "*Fotos ilustrativas de bodega similar*." / "*Bodega NO divisible*." --
+// EasyBroker las manda como líneas sueltas entre asteriscos, normalmente
+// antes del primer encabezado de sección, sin ningún campo que las agrupe.
+// El aviso de precio ("*El precio puede cambiar sin aviso previo*.") tiene
+// el mismo formato pero ya se muestra fijo en la ficha -- se excluye aquí
+// para no duplicarlo.
+const NOTE_LINE_RE = /^\*(.+?)\*\.?$/;
+const PRICE_DISCLAIMER_RE = /precio puede cambiar/i;
+
+/**
+ * Extrae los avisos "*...*" de texto libre que trae la descripción (fuera
+ * de cualquier sección/bullet). Best-effort -- por eso quedan editables
+ * como una lista simple en el formulario.
+ */
+export function parseIllustrativeNotes(description: string): string[] {
+  const notes: string[] = [];
+  for (const rawLine of description.split("\n")) {
+    const line = rawLine.trim();
+    if (!line) continue;
+    const match = line.match(NOTE_LINE_RE);
+    if (!match) continue;
+    const text = match[1].trim();
+    if (!text || PRICE_DISCLAIMER_RE.test(text)) continue;
+    notes.push(text);
+  }
+  return notes;
+}
+
 /**
  * Convierte el campo `description` de EasyBroker en las 7 secciones
  * editables del diseño, más el valor de "Garantía" por separado (dropdown

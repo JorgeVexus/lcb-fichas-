@@ -1,5 +1,9 @@
 import type { EasyBrokerPropertyDetail } from "@/lib/easybroker";
-import { parseDescriptionSections, type DescriptionSection } from "@/lib/description-sections";
+import {
+  parseDescriptionSections,
+  parseIllustrativeNotes,
+  type DescriptionSection,
+} from "@/lib/description-sections";
 import { matchGarantiaOption, DEFAULT_GARANTIA } from "@/lib/garantia-options";
 import { formatMexPhone } from "@/lib/agents";
 import { buildDefaultFileName, sanitizeFileName } from "@/lib/filename";
@@ -63,6 +67,12 @@ export function easyBrokerToFichaData(detail: EasyBrokerPropertyDetail): FichaDa
   const andenes = findBulletValue(sections, "CARGA Y DESCARGA", "andenes");
   const extraHeadline = andenes ? `${andenes} andenes para trailers` : null;
 
+  // Siempre deja al menos 2 líneas editables en el formulario, aunque
+  // EasyBroker no traiga ninguna -- el asesor puede agregar el aviso a
+  // mano; las líneas vacías simplemente no se imprimen en el PDF.
+  const illustrativeNotes = parseIllustrativeNotes(detail.description ?? "");
+  while (illustrativeNotes.length < 2) illustrativeNotes.push("");
+
   return {
     publicId: detail.public_id,
     variant,
@@ -97,6 +107,7 @@ export function easyBrokerToFichaData(detail: EasyBrokerPropertyDetail): FichaDa
 
     descriptionSections: sections,
     garantiaOption: matchGarantiaOption(garantiaText) ?? DEFAULT_GARANTIA,
+    illustrativeNotes,
 
     galleryTitle: "Fotografías",
     extraPagesTitle: "Planos",

@@ -20,12 +20,15 @@ function Section({ section, extraBullet }: { section: DescriptionSection; extraB
 export function FichaDescription({
   sections,
   garantiaOption,
+  illustrativeNotes,
 }: {
   sections: DescriptionSection[];
   garantiaOption?: string | null;
+  illustrativeNotes?: string[];
 }) {
   const left = sections.filter((s) => LEFT_COLUMN.has(s.key));
   const right = sections.filter((s) => !LEFT_COLUMN.has(s.key));
+  const notes = (illustrativeNotes ?? []).map((n) => n.trim()).filter(Boolean);
 
   return (
     <div className="ficha-description">
@@ -43,6 +46,14 @@ export function FichaDescription({
               section={s}
               extraBullet={s.key === "REQUISITOS" ? garantiaOption : null}
             />
+          ))}
+          {/* Avisos tipo "*Fotos ilustrativas...*" -- sin título, líneas
+              vacías ya filtradas arriba, así que si no hay ninguna no se
+              imprime nada. */}
+          {notes.map((note, i) => (
+            <div className="ficha-desc-note" key={i}>
+              *{note}*.
+            </div>
           ))}
           <div className="ficha-desc-note">*El precio puede cambiar sin aviso previo*.</div>
         </div>
