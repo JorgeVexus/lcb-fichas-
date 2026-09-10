@@ -272,6 +272,11 @@
   margin-top: 6px;
 }
 
+.ficha-desc-note--top {
+  margin-top: 0;
+  margin-bottom: 4px;
+}
+
 /* ---- Footer / CTA ---- */
 .ficha-footer {
   position: absolute;

@@ -33,6 +33,14 @@ export function FichaDescription({
   return (
     <div className="ficha-description">
       <div className="ficha-description-title">Descripción</div>
+      {/* Avisos tipo "*Fotos ilustrativas...*" -- sin título, debajo del
+          título de la sección y antes de las dos columnas. Líneas vacías
+          ya filtradas arriba, así que si no hay ninguna no se imprime nada. */}
+      {notes.map((note, i) => (
+        <div className="ficha-desc-note ficha-desc-note--top" key={i}>
+          *{note}*.
+        </div>
+      ))}
       <div className="ficha-description-columns">
         <div>
           {left.map((s) => (
@@ -46,14 +54,6 @@ export function FichaDescription({
               section={s}
               extraBullet={s.key === "REQUISITOS" ? garantiaOption : null}
             />
-          ))}
-          {/* Avisos tipo "*Fotos ilustrativas...*" -- sin título, líneas
-              vacías ya filtradas arriba, así que si no hay ninguna no se
-              imprime nada. */}
-          {notes.map((note, i) => (
-            <div className="ficha-desc-note" key={i}>
-              *{note}*.
-            </div>
           ))}
           <div className="ficha-desc-note">*El precio puede cambiar sin aviso previo*.</div>
         </div>
