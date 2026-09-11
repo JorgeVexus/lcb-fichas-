@@ -19,6 +19,25 @@ function formatAmount(amount: number, currency: string): string {
   return `$${formatted} ${currency}`;
 }
 
+function formatNumberEsMx(value: number): string {
+  return new Intl.NumberFormat("es-MX", { maximumFractionDigits: 2 }).format(value);
+}
+
+/**
+ * Re-formatea el primer número de un texto con separador de miles
+ * consistente ("5721" -> "5,721", "5,721" se queda igual), sin importar
+ * cómo lo haya escrito quien capturó la propiedad en EasyBroker -- el
+ * bullet de descripción es texto libre, así que a veces trae la coma y a
+ * veces no.
+ */
+function normalizeNumberInText(text: string): string {
+  const match = text.match(/-?[\d,]+(?:\.\d+)?/);
+  if (!match) return text;
+  const numeric = parseFloat(match[0].replace(/,/g, ""));
+  if (Number.isNaN(numeric)) return text;
+  return text.replace(match[0], formatNumberEsMx(numeric));
+}
+
 function findBulletValue(
   sections: DescriptionSection[],
   sectionKey: string,
@@ -53,13 +72,11 @@ export function easyBrokerToFichaData(detail: EasyBrokerPropertyDetail): FichaDa
 
   const areaFromBullet = findBulletValue(sections, "MEDIDAS", "área total construida");
   const areaLabel = areaFromBullet
-    ? /m2|m²/i.test(areaFromBullet)
-      ? areaFromBullet.replace(/m2/i, "m²")
-      : `${areaFromBullet} m²`
+    ? normalizeNumberInText(/m2|m²/i.test(areaFromBullet) ? areaFromBullet.replace(/m2/i, "m²") : `${areaFromBullet} m²`)
     : detail.construction_size
-      ? `${detail.construction_size} m²`
+      ? `${formatNumberEsMx(detail.construction_size)} m²`
       : detail.lot_size
-        ? `${detail.lot_size} m²`
+        ? `${formatNumberEsMx(detail.lot_size)} m²`
         : "";
 
   const maintenanceLabel = findBulletValue(sections, "PRECIO", "cuota de mantenimiento");
