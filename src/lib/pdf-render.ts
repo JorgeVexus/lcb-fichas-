@@ -111,21 +111,28 @@ async function renderWithFreshBrowser(html: string): Promise<Buffer> {
   }
 }
 
+const MAX_RENDER_ATTEMPTS = 3;
+
 export async function renderFichaPdf(ficha: FichaData): Promise<Buffer> {
   const optimizedFicha = await optimizeFichaImages(ficha);
   const html = buildHtml(optimizedFicha);
 
   // En Vercel, Chromium a veces se cae solo a medio render (arranques
   // concurrentes compitiendo por el mismo Chromium extraído en /tmp bajo
-  // Fluid Compute) -- un solo reintento con un browser nuevo resuelve la
-  // gran mayoría sin que el asesor tenga que darle "Descargar" de nuevo.
-  let pdf: Buffer;
-  try {
-    pdf = await renderWithFreshBrowser(html);
-  } catch (err) {
-    console.error("PDF render falló, reintentando con browser nuevo:", err);
-    pdf = await renderWithFreshBrowser(html);
+  // Fluid Compute) -- reintentar con un browser nuevo resuelve la gran
+  // mayoría sin que el asesor tenga que darle "Descargar" de nuevo.
+  let pdf: Buffer | undefined;
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= MAX_RENDER_ATTEMPTS; attempt++) {
+    try {
+      pdf = await renderWithFreshBrowser(html);
+      break;
+    } catch (err) {
+      lastError = err;
+      console.error(`PDF render falló (intento ${attempt}/${MAX_RENDER_ATTEMPTS}):`, err);
+    }
   }
+  if (!pdf) throw lastError;
 
   return await appendExtraFiles(pdf, ficha.extraFiles);
 }
