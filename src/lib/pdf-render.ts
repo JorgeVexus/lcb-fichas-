@@ -96,21 +96,36 @@ async function launchBrowser(): Promise<Browser> {
   return chromium.launch({ headless: true });
 }
 
-export async function renderFichaPdf(ficha: FichaData): Promise<Buffer> {
-  const optimizedFicha = await optimizeFichaImages(ficha);
-  const html = buildHtml(optimizedFicha);
+async function renderWithFreshBrowser(html: string): Promise<Buffer> {
   const browser = await launchBrowser();
-
   try {
     const page = await browser.newPage();
     await page.setContent(html, { waitUntil: "networkidle" });
-    const pdf = await page.pdf({
+    return await page.pdf({
       width: PAGE_WIDTH,
       height: PAGE_HEIGHT,
       printBackground: true,
     });
-    return await appendExtraFiles(pdf, ficha.extraFiles);
   } finally {
-    await browser.close();
+    await browser.close().catch(() => {});
   }
+}
+
+export async function renderFichaPdf(ficha: FichaData): Promise<Buffer> {
+  const optimizedFicha = await optimizeFichaImages(ficha);
+  const html = buildHtml(optimizedFicha);
+
+  // En Vercel, Chromium a veces se cae solo a medio render (arranques
+  // concurrentes compitiendo por el mismo Chromium extraído en /tmp bajo
+  // Fluid Compute) -- un solo reintento con un browser nuevo resuelve la
+  // gran mayoría sin que el asesor tenga que darle "Descargar" de nuevo.
+  let pdf: Buffer;
+  try {
+    pdf = await renderWithFreshBrowser(html);
+  } catch (err) {
+    console.error("PDF render falló, reintentando con browser nuevo:", err);
+    pdf = await renderWithFreshBrowser(html);
+  }
+
+  return await appendExtraFiles(pdf, ficha.extraFiles);
 }
