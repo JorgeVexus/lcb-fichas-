@@ -71,6 +71,11 @@ export default function FichaEditorPage({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(ficha),
       });
+      if (res.status === 401) {
+        throw new Error(
+          "Tu sesión expiró. Abre la página de inicio de sesión en otra pestaña, entra de nuevo y vuelve a darle Descargar aquí (no pierdes tus cambios)."
+        );
+      }
       if (!res.ok) throw new Error("No se pudo generar el PDF");
       const blob = await res.blob();
       const file = new File([blob], `${ficha.fileName}.pdf`, { type: "application/pdf" });
