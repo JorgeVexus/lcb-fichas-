@@ -2,7 +2,7 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "functions": {
     "src/pages/api/pdf.ts": {
-      "memory": 2048,
+      "memory": 1024,
       "maxDuration": 60
     }
   }
