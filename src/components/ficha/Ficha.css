@@ -233,6 +233,13 @@
   font-weight: 600;
 }
 
+.ficha-property-code {
+  margin-top: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #9ca3af;
+}
+
 /* ---- Description ---- */
 .ficha-description {
   margin-top: 18px;

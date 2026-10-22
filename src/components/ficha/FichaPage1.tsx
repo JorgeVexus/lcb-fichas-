@@ -70,6 +70,7 @@ export function FichaPage1({ ficha, logoSrc }: { ficha: FichaData; logoSrc?: str
             </div>
             {ficha.googleMapsUrl && <div className="ficha-map-hint">→ Da clic en el mapa para ver la ubicación</div>}
             <div className="ficha-map-address">{ficha.location.address}</div>
+            <div className="ficha-property-code">{ficha.publicId}</div>
           </div>
         )}
       </div>
